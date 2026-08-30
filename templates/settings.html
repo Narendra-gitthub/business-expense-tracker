@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Settings & Budget | Business Expense Tracker{% endblock %}
+{% block header_title %}System Settings & Budget Control{% endblock %}
+{% block header_subtitle %}Configure monthly limits, backup data, and manage data stores{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    
+    <!-- 1. Monthly Budget Configuration -->
+    <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-6">
+        <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
+            <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
+                <i class="fa-solid fa-bullseye text-lg"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-slate-900 text-base">Monthly Spending Limit</h3>
+                <p class="text-xs text-slate-500">Set budget thresholds for real-time alerts</p>
+            </div>
+        </div>
+
+        <form id="budgetForm" onsubmit="handleBudgetUpdate(event)" class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Company / Organization Name</label>
+                <input type="text" id="company_name" name="company_name" value="{{ settings.company_name }}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Monthly Budget Limit (₹)</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400 font-bold text-sm">₹</span>
+                    <input type="number" step="100" min="1000" id="monthly_budget" name="monthly_budget" value="{{ settings.monthly_budget }}" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-3.5 py-2.5 text-base font-mono font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none" required>
+                </div>
+            </div>
+
+            <!-- Quick Presets -->
+            <div>
+                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">Quick Presets:</span>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" onclick="setPresetBudget(50000)" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-700 font-mono transition">₹50,000</button>
+                    <button type="button" onclick="setPresetBudget(100000)" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-700 font-mono transition">₹1,00,000</button>
+                    <button type="button" onclick="setPresetBudget(150000)" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-700 font-mono transition">₹1,50,000</button>
+                    <button type="button" onclick="setPresetBudget(200000)" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-700 font-mono transition">₹2,00,000</button>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 flex justify-end">
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow-md shadow-indigo-600/20 transition flex items-center gap-2">
+                    <i class="fa-solid fa-save"></i>
+                    <span>Save Budget Settings</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 2. Data Persistence & Backup Center -->
+    <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-6">
+        <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
+            <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">
+                <i class="fa-solid fa-database text-lg"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-slate-900 text-base">Data Storage & Persistence</h3>
+                <p class="text-xs text-slate-500">JSON/CSV storage, backup, and restore</p>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-slate-700">JSON Storage Engine</span>
+                    <span class="text-[11px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">Active & Auto-Saved</span>
+                </div>
+                <p class="text-xs text-slate-500">
+                    All additions, edits, and deletions are immediately persisted in <code class="font-mono bg-slate-200 px-1 py-0.5 rounded text-[11px]">data/expenses.json</code>.
+                </p>
+            </div>
+
+            <!-- Export Buttons -->
+            <div class="grid grid-cols-2 gap-3">
+                <a href="{{ url_for('api_export_csv') }}" class="flex items-center justify-center gap-2 p-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 font-bold rounded-xl text-xs transition">
+                    <i class="fa-solid fa-file-csv text-base text-emerald-600"></i>
+                    <span>Export CSV File</span>
+                </a>
+                <a href="{{ url_for('api_export_json') }}" class="flex items-center justify-center gap-2 p-3 bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-800 font-bold rounded-xl text-xs transition">
+                    <i class="fa-solid fa-file-code text-base text-sky-600"></i>
+                    <span>Export JSON File</span>
+                </a>
+            </div>
+
+            <!-- Demo Data Reset -->
+            <div class="pt-4 border-t border-slate-100">
+                <button onclick="handleResetSampleData()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rotate-right text-slate-500"></i>
+                    <span>Reload August 2026 Demo Dataset</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function setPresetBudget(val) {
+    document.getElementById('monthly_budget').value = val;
+}
+
+function handleBudgetUpdate(e) {
+    e.preventDefault();
+    const company = document.getElementById('company_name').value;
+    const budget = document.getElementById('monthly_budget').value;
+
+    fetch('/api/settings/budget', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ company_name: company, monthly_budget: budget })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Budget settings updated successfully!', 'success');
+        } else {
+            showToast(data.message || 'Error updating budget', 'error');
+        }
+    })
+    .catch(err => showToast('Failed to save settings', 'error'));
+}
+
+function handleResetSampleData() {
+    if (!confirm('Reload default demo data for August 2026?')) return;
+    
+    fetch('/api/reset-sample', { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Demo dataset loaded!', 'success');
+            setTimeout(() => window.location.reload(), 800);
+        }
+    });
+}
+</script>
+{% endblock %}
