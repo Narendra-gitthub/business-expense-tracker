@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Business Expense Tracker{% endblock %}
+{% block header_title %}Executive Dashboard{% endblock %}
+{% block header_subtitle %}Real-time business expense management & budget analytics{% endblock %}
+
+{% block content %}
+<!-- Month Selector Header -->
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
+    <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+            <i class="fa-solid fa-calendar-days text-lg"></i>
+        </div>
+        <div>
+            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Viewing Period</span>
+            <h3 class="text-base font-extrabold text-slate-900">{{ summary.month_display_name }}</h3>
+        </div>
+    </div>
+    
+    <div class="flex items-center gap-2 w-full sm:w-auto">
+        <label for="dashboardMonthSelect" class="text-xs font-bold text-slate-600">Select Month:</label>
+        <select id="dashboardMonthSelect" onchange="changeDashboardMonth(this.value)" class="bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl px-3 py-2 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+            {% for m in summary.available_months %}
+            <option value="{{ m }}" {% if m == summary.selected_month %}selected{% endif %}>{{ m }}</option>
+            {% endfor %}
+            <option value="all" {% if summary.selected_month == 'all' %}selected{% endif %}>All Time</option>
+        </select>
+    </div>
+</div>
+
+<!-- ==================== BUDGET OVERFLOW WARNING BANNER ==================== -->
+{% if summary.is_over_budget %}
+<div class="bg-rose-500/10 border-2 border-rose-500/80 rounded-2xl p-5 shadow-lg shadow-rose-500/10 text-rose-900 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-pulse-slow">
+    <div class="flex items-start gap-4">
+        <div class="w-12 h-12 rounded-2xl bg-rose-500 text-white flex items-center justify-center shrink-0 text-2xl shadow-md shadow-rose-500/30">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-600 text-white uppercase tracking-wider">⚠ Budget Exceeded!</span>
+                <span class="text-xs font-bold text-rose-700">Action Required</span>
+            </div>
+            <p class="text-sm font-semibold text-rose-900 mt-1">
+                Total spending of <span class="font-mono font-black text-rose-950">{{ summary.total_expenses_month_formatted }}</span> has exceeded the monthly budget limit of <span class="font-mono font-bold">{{ summary.monthly_budget_formatted }}</span>.
+            </p>
+            <div class="flex items-center gap-4 mt-2 text-xs font-bold">
+                <span class="text-rose-800 font-mono">Budget: {{ summary.monthly_budget_formatted }}</span>
+                <span class="text-slate-400">•</span>
+                <span class="text-rose-800 font-mono">Spent: {{ summary.total_expenses_month_formatted }}</span>
+                <span class="text-slate-400">•</span>
+                <span class="text-rose-950 font-black font-mono">Over: {{ summary.over_budget_amount_formatted }} ({{ summary.budget_real_percentage }}%)</span>
+            </div>
+        </div>
+    </div>
+    <div class="shrink-0 flex gap-2">
+        <a href="{{ url_for('settings_page') }}" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-md transition whitespace-nowrap">
+            <i class="fa-solid fa-sliders mr-1.5"></i> Adjust Budget
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<!-- ==================== TOP KPI SUMMARY CARDS ==================== -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+    
+    <!-- 1. Total Expenses -->
+    <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm relative overflow-hidden group hover:shadow-md transition">
+        <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Spent</span>
+            <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-wallet text-base"></i>
+            </div>
+        </div>
+        <div class="text-2xl font-black text-slate-900 font-mono tracking-tight">
+            {{ summary.total_expenses_month_formatted }}
+        </div>
+        <div class="mt-2 flex items-center justify-between text-xs">
+            <span class="text-slate-500 font-medium">{{ summary.total_transactions_count }} transactions</span>
+            <span class="text-sky-600 font-bold font-mono">{{ summary.month_display_name }}</span>
+        </div>
+        <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-sky-400 to-indigo-500"></div>
+    </div>
+
+    <!-- 2. Monthly Budget -->
+    <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm relative overflow-hidden group hover:shadow-md transition">
+        <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Monthly Budget</span>
+            <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-bullseye text-base"></i>
+            </div>
+        </div>
+        <div class="text-2xl font-black text-slate-900 font-mono tracking-tight">
+            {{ summary.monthly_budget_formatted }}
+        </div>
+        <div class="mt-2 flex items-center justify-between text-xs">
+            <span class="text-slate-500 font-medium">Budget Usage</span>
+            <span class="font-bold {% if summary.is_over_budget %}text-rose-600{% else %}text-emerald-600{% endif %} font-mono">
+                {{ summary.budget_real_percentage }}%
+            </span>
+        </div>
+        <div class="absolute bottom-0 left-0 right-0 h-1 bg-indigo-500"></div>
+    </div>
+
+    <!-- 3. Remaining / Over Budget -->
+    <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm relative overflow-hidden group hover:shadow-md transition">
+        <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">
+                {% if summary.is_over_budget %}Over Budget{% else %}Remaining Budget{% endif %}
+            </span>
+            <div class="w-10 h-10 rounded-xl {% if summary.is_over_budget %}bg-rose-50 text-rose-600{% else %}bg-emerald-50 text-emerald-600{% endif %} flex items-center justify-center group-hover:scale-110 transition-transform">
+                <i class="fa-solid {% if summary.is_over_budget %}fa-arrow-trend-up{% else %}fa-piggy-bank{% endif %} text-base"></i>
+            </div>
+        </div>
+        <div class="text-2xl font-black font-mono tracking-tight {% if summary.is_over_budget %}text-rose-600{% else %}text-emerald-600{% endif %}">
+            {% if summary.is_over_budget %}
+                -{{ summary.over_budget_amount_formatted }}
+            {% else %}
+                {{ summary.remaining_budget_formatted }}
+            {% endif %}
+        </div>
+        <div class="mt-2 flex items-center justify-between text-xs">
+            <span class="text-slate-500 font-medium">Status</span>
+            <span class="font-bold px-2 py-0.5 rounded-full text-[10px] {% if summary.is_over_budget %}bg-rose-100 text-rose-700 border border-rose-200{% else %}bg-emerald-100 text-emerald-700 border border-emerald-200{% endif %}">
+                {% if summary.is_over_budget %}Exceeded{% else %}On Track{% endif %}
+            </span>
+        </div>
+        <div class="absolute bottom-0 left-0 right-0 h-1 {% if summary.is_over_budget %}bg-rose-500{% else %}bg-emerald-500{% endif %}"></div>
+    </div>
+
+    <!-- 4. Top Category & Top Expense -->
+    <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm relative overflow-hidden group hover:shadow-md transition">
+        <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Highest Category</span>
+            <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-crown text-base"></i>
+            </div>
+        </div>
+        <div class="text-lg font-extrabold text-slate-900 truncate">
+            {{ summary.top_category }}
+        </div>
+        <div class="mt-2 flex items-center justify-between text-xs">
+            <span class="text-slate-500 font-medium">Category Total</span>
+            <span class="font-bold text-amber-600 font-mono">{{ summary.top_category_amount_formatted }}</span>
+        </div>
+        <div class="absolute bottom-0 left-0 right-0 h-1 bg-amber-500"></div>
+    </div>
+</div>
+
+<!-- ==================== BUDGET PROGRESS BAR ==================== -->
+<div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+    <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+            <i class="fa-solid fa-gauge-high text-sky-600"></i>
+            <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">Monthly Budget Consumption</span>
+        </div>
+        <span class="text-xs font-bold font-mono {% if summary.is_over_budget %}text-rose-600{% else %}text-emerald-600{% endif %}">
+            {{ summary.total_expenses_month_formatted }} of {{ summary.monthly_budget_formatted }} ({{ summary.budget_real_percentage }}%)
+        </span>
+    </div>
+    <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden p-0.5">
+        <div class="h-full rounded-full transition-all duration-500 {% if summary.is_over_budget %}bg-rose-500{% elif summary.budget_real_percentage > 85 %}bg-amber-500{% else %}bg-emerald-500{% endif %}" style="width: {{ summary.budget_usage_percentage }}%;"></div>
+    </div>
+</div>
+
+<!-- ==================== CHARTS ROW ==================== -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    
+    <!-- Category-wise Expenses Breakdown (Donut Chart) -->
+    <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
+            <div>
+                <h3 class="font-bold text-slate-900 text-base">Category-wise Expenses</h3>
+                <p class="text-xs text-slate-500">Spending distribution across departments</p>
+            </div>
+            <span class="text-xs font-bold bg-slate-100 text-slate-700 px-3 py-1 rounded-lg">
+                {{ summary.category_breakdown|length }} Active Categories
+            </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+            <div class="relative h-64 flex items-center justify-center">
+                <canvas id="categoryChart"></canvas>
+            </div>
+            
+            <div class="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                {% for item in summary.category_breakdown %}
+                <div class="flex items-center justify-between p-2 rounded-xl bg-slate-50 hover:bg-slate-100/80 transition text-xs">
+                    <div class="flex items-center gap-2.5 truncate">
+                        <span class="w-2.5 h-2.5 rounded-full shrink-0 category-dot" data-category="{{ item.category }}"></span>
+                        <span class="font-bold text-slate-800 truncate">{{ item.category }}</span>
+                    </div>
+                    <div class="flex items-center gap-3 shrink-0">
+                        <span class="font-bold text-slate-900 font-mono">{{ item.formatted }}</span>
+                        <span class="text-[11px] font-semibold text-slate-400 w-10 text-right">{{ item.percentage }}%</span>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center py-8 text-slate-400 text-xs">
+                    No expense records found for this period.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Method Tracking (Doughnut / Bar) -->
+    <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
+            <div>
+                <h3 class="font-bold text-slate-900 text-base">Payment Methods</h3>
+                <p class="text-xs text-slate-500">Channels used for payments</p>
+            </div>
+        </div>
+
+        <div class="relative h-48 flex items-center justify-center mb-4">
+            <canvas id="paymentChart"></canvas>
+        </div>
+
+        <div class="space-y-2 pt-2 border-t border-slate-100">
+            {% for pm in summary.payment_breakdown %}
+            <div class="flex items-center justify-between text-xs">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid {% if pm.method == 'UPI' %}fa-mobile-screen-button text-purple-600{% elif pm.method == 'Bank Transfer' %}fa-building-columns text-blue-600{% elif pm.method == 'Credit/Debit Card' %}fa-credit-card text-emerald-600{% else %}fa-money-bill-wave text-amber-600{% endif %} w-4"></i>
+                    <span class="font-semibold text-slate-700">{{ pm.method }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-slate-900 font-mono">{{ pm.formatted }}</span>
+                    <span class="text-[10px] text-slate-400">({{ pm.percentage }}%)</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- ==================== RECENT TRANSACTIONS TABLE ==================== -->
+<div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+    <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+            <h3 class="font-bold text-slate-900 text-base">Recent Transactions</h3>
+            <p class="text-xs text-slate-500">Latest business expenses recorded in the system</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{{ url_for('expenses_page') }}" class="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 hover:bg-sky-100 px-3.5 py-2 rounded-xl transition flex items-center gap-1.5">
+                <span>View Full Registry</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider border-b border-slate-200/60">
+                <tr>
+                    <th class="py-3 px-4">ID</th>
+                    <th class="py-3 px-4">Date</th>
+                    <th class="py-3 px-4">Category</th>
+                    <th class="py-3 px-4">Description</th>
+                    <th class="py-3 px-4">Amount</th>
+                    <th class="py-3 px-4">Payment Method</th>
+                    <th class="py-3 px-4">Status</th>
+                    <th class="py-3 px-4 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
+                {% for exp in recent_expenses %}
+                <tr class="hover:bg-slate-50/80 transition" id="row-{{ exp.id }}">
+                    <td class="py-3.5 px-4 font-mono font-bold text-slate-900">#{{ exp.id }}</td>
+                    <td class="py-3.5 px-4 text-slate-500 whitespace-nowrap">{{ exp.date }}</td>
+                    <td class="py-3.5 px-4">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-800">
+                            {{ exp.category }}
+                        </span>
+                    </td>
+                    <td class="py-3.5 px-4 font-semibold text-slate-900 max-w-xs truncate">{{ exp.description }}</td>
+                    <td class="py-3.5 px-4 font-mono font-bold text-slate-900 text-sm whitespace-nowrap">{{ format_inr(exp.amount) }}</td>
+                    <td class="py-3.5 px-4 text-slate-600 whitespace-nowrap">
+                        <i class="fa-solid {% if exp.payment_method == 'UPI' %}fa-mobile-screen-button text-purple-600{% elif exp.payment_method == 'Bank Transfer' %}fa-building-columns text-blue-600{% elif exp.payment_method == 'Credit/Debit Card' %}fa-credit-card text-emerald-600{% else %}fa-money-bill-wave text-amber-600{% endif %} mr-1.5"></i>
+                        {{ exp.payment_method }}
+                    </td>
+                    <td class="py-3.5 px-4">
+                        <div class="relative inline-block">
+                            <button onclick="toggleStatusDropdown('{{ exp.id }}')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border transition {% if exp.status == 'Paid' %}bg-emerald-50 text-emerald-700 border-emerald-200{% elif exp.status == 'Pending' %}bg-amber-50 text-amber-700 border-amber-200{% else %}bg-sky-50 text-sky-700 border-sky-200{% endif %}">
+                                <span class="w-1.5 h-1.5 rounded-full {% if exp.status == 'Paid' %}bg-emerald-500{% elif exp.status == 'Pending' %}bg-amber-500{% else %}bg-sky-500{% endif %}"></span>
+                                <span>{{ exp.status }}</span>
+                                <i class="fa-solid fa-chevron-down text-[8px] opacity-60"></i>
+                            </button>
+                            <div id="status-menu-{{ exp.id }}" class="hidden absolute left-0 mt-1 w-32 bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-30">
+                                {% for st in statuses %}
+                                <button onclick="quickUpdateStatus('{{ exp.id }}', '{{ st }}')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 flex items-center gap-2 font-medium {% if exp.status == st %}text-sky-600 font-bold bg-sky-50{% endif %}">
+                                    <span class="w-2 h-2 rounded-full {% if st == 'Paid' %}bg-emerald-500{% elif st == 'Pending' %}bg-amber-500{% else %}bg-sky-500{% endif %}"></span>
+                                    <span>{{ st }}</span>
+                                </button>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-3.5 px-4 text-right whitespace-nowrap">
+                        <div class="inline-flex items-center gap-1">
+                            <button onclick="openEditModalFromData('{{ exp.id }}', '{{ exp.date }}', '{{ exp.category }}', '{{ exp.description|escape }}', '{{ exp.amount }}', '{{ exp.payment_method }}', '{{ exp.status }}')" class="p-1.5 text-slate-400 hover:text-amber-600 rounded-lg hover:bg-amber-50 transition" title="Edit Expense">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="openDeleteModal('{{ exp.id }}')" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition" title="Delete Expense">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center py-10 text-slate-400">
+                        <i class="fa-solid fa-receipt text-3xl mb-2 text-slate-300 block"></i>
+                        No expenses recorded yet. Click "Add New Expense" to get started.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    window.DASHBOARD_DATA = {
+        categoryBreakdown: {{ summary.category_breakdown|tojson }},
+        paymentBreakdown: {{ summary.payment_breakdown|tojson }},
+        statusCounts: {{ summary.status_counts|tojson }}
+    };
+</script>
+{% endblock %}
