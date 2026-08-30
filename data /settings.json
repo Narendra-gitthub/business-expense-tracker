@@ -1,0 +1,28 @@
+{
+  "monthly_budget": 150000.0,
+  "currency_symbol": "₹",
+  "company_name": "Royal Enterprise",
+  "categories": [
+    "Office Supplies",
+    "Rent",
+    "Electricity",
+    "Transportation",
+    "Marketing",
+    "Salaries",
+    "Equipment",
+    "Software/Subscriptions",
+    "Travel",
+    "Miscellaneous"
+  ],
+  "payment_methods": [
+    "UPI",
+    "Bank Transfer",
+    "Credit/Debit Card",
+    "Cash"
+  ],
+  "statuses": [
+    "Pending",
+    "Paid",
+    "Reimbursed"
+  ]
+}
