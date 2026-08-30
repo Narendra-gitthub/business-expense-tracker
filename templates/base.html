@@ -37,16 +37,86 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    
     <style>
         body {
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
         }
         .font-mono-num {
             font-family: 'JetBrains Mono', monospace;
+        }
+        
+        /* Modal & Alert Animations */
+        @keyframes modalSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.97);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        .animate-modal {
+            animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes pulseBorder {
+            0%, 100% {
+                border-color: rgba(239, 68, 68, 0.8);
+                box-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
+            }
+            50% {
+                border-color: rgba(239, 68, 68, 0.3);
+                box-shadow: 0 0 5px rgba(239, 68, 68, 0.05);
+            }
+        }
+        .animate-pulse-slow {
+            animation: pulseBorder 2s infinite ease-in-out;
+        }
+
+        /* Distinct Category Color Dots */
+        .category-dot[data-category="Office Supplies"] { background-color: #0ea5e9; }
+        .category-dot[data-category="Rent"] { background-color: #f59e0b; }
+        .category-dot[data-category="Electricity"] { background-color: #eab308; }
+        .category-dot[data-category="Transportation"] { background-color: #10b981; }
+        .category-dot[data-category="Marketing"] { background-color: #ec4899; }
+        .category-dot[data-category="Salaries"] { background-color: #6366f1; }
+        .category-dot[data-category="Equipment"] { background-color: #8b5cf6; }
+        .category-dot[data-category="Software/Subscriptions"] { background-color: #14b8a6; }
+        .category-dot[data-category="Travel"] { background-color: #f97316; }
+        .category-dot[data-category="Miscellaneous"] { background-color: #64748b; }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Clean Print View */
+        @media print {
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+            }
+            aside, header, #addExpenseBtn, button, #toastContainer {
+                display: none !important;
+            }
+            main {
+                padding: 0 !important;
+                margin: 0 !important;
+            }
         }
     </style>
 </head>
@@ -364,9 +434,265 @@
     <!-- Toast Notification Container -->
     <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
 
-    <!-- Core Scripts -->
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+    <!-- Inlined Core JavaScript (Guaranteed execution without 404s) -->
+    <script>
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            toast.className = `p-4 rounded-2xl shadow-xl border text-xs font-bold flex items-center gap-3 transition-all duration-300 transform translate-y-2 pointer-events-auto ${
+                type === 'success' ? 'bg-emerald-600 text-white border-emerald-500' :
+                type === 'error' ? 'bg-rose-600 text-white border-rose-500' :
+                'bg-slate-900 text-white border-slate-800'
+            }`;
+
+            const icon = type === 'success' ? 'fa-circle-check' :
+                         type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-info';
+
+            toast.innerHTML = `
+                <i class="fa-solid ${icon} text-base"></i>
+                <span>${message}</span>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.remove('translate-y-2'), 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        function openAddExpenseModal() {
+            const modal = document.getElementById('addExpenseModal');
+            if (!modal) return;
+            const dateInput = document.getElementById('add_date');
+            if (dateInput && !dateInput.value) {
+                dateInput.value = new Date().toISOString().split('T')[0];
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function closeAddExpenseModal() {
+            const modal = document.getElementById('addExpenseModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function openEditModalFromData(id, date, category, description, amount, paymentMethod, status) {
+            document.getElementById('edit_id').value = id;
+            document.getElementById('edit_id_display').value = '#' + id;
+            document.getElementById('edit_date').value = date;
+            document.getElementById('edit_category').value = category;
+            document.getElementById('edit_description').value = description;
+            document.getElementById('edit_amount').value = amount;
+            document.getElementById('edit_payment_method').value = paymentMethod;
+            document.getElementById('edit_status').value = status;
+
+            const modal = document.getElementById('editExpenseModal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeEditExpenseModal() {
+            const modal = document.getElementById('editExpenseModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        let activeDeleteId = null;
+
+        function openDeleteModal(id) {
+            activeDeleteId = id;
+            const display = document.getElementById('deleteExpenseIdDisplay');
+            if (display) display.textContent = '#' + id;
+            const modal = document.getElementById('deleteExpenseModal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeDeleteModal() {
+            activeDeleteId = null;
+            const modal = document.getElementById('deleteExpenseModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function confirmDeleteExpense() {
+            if (!activeDeleteId) return;
+
+            fetch(`/api/expenses/${activeDeleteId}`, {
+                method: 'DELETE'
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Expense deleted successfully', 'success');
+                    const row = document.getElementById(`row-${activeDeleteId}`);
+                    if (row) row.remove();
+                    closeDeleteModal();
+                    setTimeout(() => window.location.reload(), 400);
+                } else {
+                    showToast(data.message || 'Error deleting expense', 'error');
+                }
+            })
+            .catch(err => {
+                showToast('Network error while deleting', 'error');
+            });
+        }
+
+        function openImportModal() {
+            const modal = document.getElementById('importModal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeImportModal() {
+            const modal = document.getElementById('importModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function handleAddExpenseSubmit(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            fetch('/api/expenses', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    showToast('Expense added successfully!', 'success');
+                    closeAddExpenseModal();
+                    form.reset();
+                    setTimeout(() => window.location.reload(), 500);
+                } else {
+                    showToast(res.message || 'Failed to add expense', 'error');
+                }
+            })
+            .catch(err => showToast('Error submitting expense', 'error'));
+        }
+
+        function handleEditExpenseSubmit(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            const id = data.id;
+
+            fetch(`/api/expenses/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    showToast('Expense updated successfully!', 'success');
+                    closeEditExpenseModal();
+                    setTimeout(() => window.location.reload(), 500);
+                } else {
+                    showToast(res.message || 'Failed to update expense', 'error');
+                }
+            })
+            .catch(err => showToast('Error updating expense', 'error'));
+        }
+
+        function toggleStatusDropdown(id) {
+            const menu = document.getElementById(`status-menu-${id}`);
+            if (!menu) return;
+            
+            document.querySelectorAll('[id^="status-menu-"]').forEach(el => {
+                if (el.id !== `status-menu-${id}`) el.classList.add('hidden');
+            });
+
+            menu.classList.toggle('hidden');
+        }
+
+        function quickUpdateStatus(id, newStatus) {
+            fetch(`/api/expenses/${id}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`Status updated to ${newStatus}`, 'success');
+                    setTimeout(() => window.location.reload(), 400);
+                } else {
+                    showToast(data.message || 'Failed to update status', 'error');
+                }
+            })
+            .catch(err => showToast('Error updating status', 'error'));
+        }
+
+        function handleImportSubmit(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+
+            fetch('/api/import', {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    closeImportModal();
+                    setTimeout(() => window.location.reload(), 600);
+                } else {
+                    showToast(data.message || 'Import failed', 'error');
+                }
+            })
+            .catch(err => showToast('Error importing file', 'error'));
+        }
+
+        function changeDashboardMonth(m) {
+            window.location.href = `/?month=${m}`;
+        }
+
+        function sortTable(colIndex) {
+            const table = document.getElementById('expensesTable');
+            if (!table) return;
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            const isAsc = table.getAttribute('data-sort-asc') === 'true';
+            table.setAttribute('data-sort-asc', !isAsc);
+
+            rows.sort((a, b) => {
+                const cellA = a.children[colIndex].innerText.replace('₹', '').replace(/,/g, '').trim();
+                const cellB = b.children[colIndex].innerText.replace('₹', '').replace(/,/g, '').trim();
+
+                const numA = parseFloat(cellA);
+                const numB = parseFloat(cellB);
+
+                if (!isNaN(numA) && !isNaN(numB)) {
+                    return isAsc ? numA - numB : numB - numA;
+                }
+                return isAsc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+            });
+
+            rows.forEach(r => tbody.appendChild(r));
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('[id^="status-menu-"]') && !e.target.closest('button[onclick^="toggleStatusDropdown"]')) {
+                document.querySelectorAll('[id^="status-menu-"]').forEach(el => el.classList.add('hidden'));
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const menuToggle = document.getElementById('mobileMenuToggle');
+            const sidebar = document.getElementById('sidebar');
+            if (menuToggle && sidebar) {
+                menuToggle.addEventListener('click', () => {
+                    sidebar.classList.toggle('hidden');
+                });
+            }
+        });
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>
